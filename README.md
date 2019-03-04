@@ -2,8 +2,8 @@ MONET modules for *pytel*
 =========================
 
 
-Install *pytel-fli*
--------------------
+Install *pytel-monet*
+---------------------
 Clone the repository:
 
     git clone https://github.com/thusser/pytel-monet.git
