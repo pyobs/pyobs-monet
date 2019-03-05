@@ -12,7 +12,7 @@ class BonnShutter(PytelModule):
 
         # store
         self._device = device
-        self._baud_date = baud_rate
+        self._baud_rate = baud_rate
         self._timeout = timeout
         self._interval = interval
 
