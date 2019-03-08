@@ -1,17 +1,17 @@
-MONET modules for *pytel*
+MONET modules for *pyobs*
 =========================
 
 
-Install *pytel-monet*
+Install *pyobs-monet*
 ---------------------
 Clone the repository:
 
-    git clone https://github.com/thusser/pytel-monet.git
+    git clone https://github.com/pyobs/pyobs-monet.git
 
 
 Install dependencies:
 
-    cd pytel-monet
+    cd pyobs-monet
     pip3 install -r requirements
         
 And install it:

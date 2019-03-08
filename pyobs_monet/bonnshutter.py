@@ -1,14 +1,14 @@
 import logging
 import serial
 
-from pytel import PytelModule
+from pyobs import PyObsModule
 
 log = logging.getLogger(__name__)
 
 
-class BonnShutter(PytelModule):
+class BonnShutter(PyObsModule):
     def __init__(self, device='/dev/ttyUSB0', baud_rate=19200, timeout=1, interval=60, *args, **kwargs):
-        PytelModule.__init__(self, thread_funcs=self._mechanic, *args, **kwargs)
+        PyObsModule.__init__(self, thread_funcs=self._mechanic, *args, **kwargs)
 
         # store
         self._device = device

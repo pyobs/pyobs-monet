@@ -1,6 +1,6 @@
-FROM thusser/pytel
+FROM thusser/pyobs
 
-# install pytel-monet
+# install pyobs-monet
 COPY . /src
 WORKDIR /src
 RUN pip install -r requirements.txt
@@ -10,4 +10,4 @@ RUN python setup.py install
 RUN rm -rf /src
 
 # set entrypoint
-ENTRYPOINT ["/usr/local/bin/pytel", "/pytel.yaml"]
+ENTRYPOINT ["/usr/local/bin/pyobs", "/pyobs.yaml"]
