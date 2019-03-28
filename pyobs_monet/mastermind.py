@@ -10,14 +10,14 @@ class MasterMind(PyObsModule, IFitsHeaderProvider):
     def __init__(self, *args, **kwargs):
         PyObsModule.__init__(self, *args, **kwargs)
         self._objid = 1000
-        self._expid = 1
+        self._expid = 0
 
     def run(self):
         # get camera
         camera = self.comm['camera']    # type: ICamera, Proxy
 
         # take 10 bias images
-        for self._expid in range(1, 11):
+        for self._expid in range(10):
             # take image
             log.info('Take image %d...', self._expid)
             camera.expose(0, ICamera.ImageType.BIAS)
