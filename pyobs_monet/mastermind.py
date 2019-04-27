@@ -2,6 +2,7 @@ import logging
 
 from pyobs import PyObsModule
 from pyobs.interfaces import IFitsHeaderProvider, ICamera
+from pyobs.utils.time import Time
 
 log = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ class MasterMind(PyObsModule, IFitsHeaderProvider):
 
     def run(self):
         # get camera
-        camera = self.comm['camera']    # type: ICamera, Proxy
+        camera = self.comm['camera']    # type: (ICamera, Proxy)
 
         # take 10 bias images
         self._object = 'bias'
@@ -26,7 +27,8 @@ class MasterMind(PyObsModule, IFitsHeaderProvider):
 
     def get_fits_headers(self, *args, **kwargs) -> dict:
         # build obj id
-        objid = self.environment.night_obs().strftime('%Y%m%d') + 'S-%04d' % self._objid
+        objid = Time.now().night_obs(self.observer).strftime('%Y%m%d') + 'S-%04d' % self._objid
+
         # return it
         return {
             'OBJID': objid,
