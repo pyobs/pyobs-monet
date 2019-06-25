@@ -16,6 +16,7 @@ class Weather(PyObsModule, IWeather):
 
         # store
         self._connect = connect
+        self._interval = interval
 
     def _update_thread(self):
         # connect db
