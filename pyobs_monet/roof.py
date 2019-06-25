@@ -3,7 +3,7 @@ from enum import Enum
 import requests
 
 from pyobs import PyObsModule
-from pyobs.events import RoofOpenedEvent, RoofClosingEvent, BadWeatherEvent
+from pyobs.events import RoofOpenedEvent, RoofClosingEvent
 from pyobs.interfaces import IRoof, IMotion
 
 log = logging.getLogger(__name__)
@@ -104,7 +104,6 @@ class Roof(PyObsModule, IRoof):
                             elif new_status == Roof.Status.Closing:
                                 # roof started to close
                                 self.comm.send_event(RoofClosingEvent())
-                                self.comm.send_event(BadWeatherEvent())
 
                         # set status
                         self._status = new_status
