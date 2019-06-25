@@ -1,10 +1,8 @@
 import logging
-from enum import Enum
-import requests
+import threading
 from sqlalchemy import create_engine
 
 from pyobs import PyObsModule
-from pyobs.events import RoofOpenedEvent, RoofClosingEvent, BadWeatherEvent
 from pyobs.interfaces import IWeather
 
 log = logging.getLogger(__name__)
@@ -17,6 +15,8 @@ class Weather(PyObsModule, IWeather):
         # store
         self._connect = connect
         self._interval = interval
+        self._data = {}
+        self._data_lock = threading.RLock()
 
     def _update_thread(self):
         # connect db
@@ -27,9 +27,19 @@ class Weather(PyObsModule, IWeather):
             try:
                 # do request
                 with engine.begin() as conn:
-                    r = conn.execute('select * from current_weather')
-                    print(r)
-                    return
+                    # do query
+                    row = conn.execute('select * from current_weather').fetchone()
+
+                    # get data, available columns are
+                    # 'datetime', 'avg_t_min_tdew', 'avg_hum', 'avg_cloud', 'avg_wind', 'avg_temp', 't_min_tdew_warn',
+                    # 'hum_warn', 'rain_warn', 'cloud_warn', 'wind_warn', 'temp_warn'
+                    with self._data_lock:
+                        self._data = {
+                            IWeather.Sensors.TIME: row['datetime'],
+                            IWeather.Sensors.HUMIDITY: row['avg_hum'],
+                            IWeather.Sensors.WINDSPEED: row['avg_wind'],
+                            IWeather.Sensors.TEMPERATURE: row['avg_temp']
+                        }
 
             except Exception:
                 log.exception('Something went wrong.')
@@ -37,6 +47,10 @@ class Weather(PyObsModule, IWeather):
             finally:
                 # wait a little until next update
                 self.closing.wait(self._interval)
+
+    def get_weather_status(self, *args, **kwargs) -> dict:
+        """Returns status of object in form of a dictionary. See other interfaces for details."""
+        return self._data
 
 
 __all__ = ['Weather']
