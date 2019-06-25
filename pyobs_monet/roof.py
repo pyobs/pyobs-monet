@@ -43,11 +43,19 @@ class Roof(PyObsModule, IRoof):
         errored = False
         while not self.closing.is_set():
             try:
-                r = session.get(self._url + '?type=STATUS', auth=(self._username, self._password))
+                # do request
+                r = session.get(self._url + '?STATUS', auth=(self._username, self._password))
+
+                # get content
+                content = r.content.decode('utf-8')
+
+                # TODO: remove, this is for circumventing a domeweb bug...
+                if '<' in content:
+                    content = content[:content.find('<')]
 
                 # string is a comma-separated list of key=value pairs
                 status = {}
-                for kv in r.content.split(','):
+                for kv in content.split(','):
                     key, value = kv.split('=')
                     status[key] = value
 
