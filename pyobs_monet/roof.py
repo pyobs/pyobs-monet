@@ -4,23 +4,22 @@ import requests
 
 from pyobs import PyObsModule
 from pyobs.events import RoofOpenedEvent, RoofClosingEvent, BadWeatherEvent
-from pyobs.interfaces import IRoof, IWeather
+from pyobs.interfaces import IRoof, IMotion
 
 log = logging.getLogger(__name__)
 
 
-class Status(Enum):
-    Opened = 'opened'
-    Closed = 'closed'
-    Opening = 'opening'
-    Closing = 'closing'
-    Stopped = 'stopped'
-    Unknown = None
-
-
-class Roof(PyObsModule, IRoof, IWeather):
+class Roof(PyObsModule, IRoof):
+    class Status(Enum):
+        Opened = 'opened'
+        Closed = 'closed'
+        Opening = 'opening'
+        Closing = 'closing'
+        Stopped = 'stopped'
+        Unknown = None
+        
     def __init__(self, url: str = '', username: str = None, password: str = None, interval: int = 30, *args, **kwargs):
-        PyObsModule.__init__(self, thread_funcs=[self._status], *args, **kwargs)
+        PyObsModule.__init__(self, thread_funcs=[self._update_thread], *args, **kwargs)
 
         # store
         self._url = url
@@ -29,14 +28,14 @@ class Roof(PyObsModule, IRoof, IWeather):
         self._interval = interval
 
         # init status
-        self._status = Status.Unknown
-        self._roof1 = Status.Unknown
-        self._roof2 = Status.Unknown
+        self._status = Roof.Status.Unknown
+        self._roof1 = Roof.Status.Unknown
+        self._roof2 = Roof.Status.Unknown
 
         # change logging level for urllib3
         logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(logging.WARNING)
 
-    def _status(self):
+    def _update_thread(self):
         # open new session
         session = requests.Session()
 
@@ -58,43 +57,43 @@ class Roof(PyObsModule, IRoof, IWeather):
                     if not errored:
                         log.error('Invalid status format.')
                     errored = True
-                    self._status = Status.Unknown
+                    self._status = Roof.Status.Unknown
 
                 else:
                     # parse status
-                    status_left = Status(status['STATE1'].lower())
-                    status_right = Status(status['STATE2'].lower())
+                    status_left = Roof.Status(status['STATE1'].lower())
+                    status_right = Roof.Status(status['STATE2'].lower())
 
                     # get some kind of combined status
-                    if status_left == Status.Opening or status_right == Status.Opening:
+                    if status_left == Roof.Status.Opening or status_right == Roof.Status.Opening:
                         # if at least one roof is opening/closing, that's our status
-                        new_status = Status.Opening
-                    elif status_left == Status.Opening or status_right == Status.Closing:
+                        new_status = Roof.Status.Opening
+                    elif status_left == Roof.Status.Opening or status_right == Roof.Status.Closing:
                         # if at least one roof is opening/closing, that's our status
-                        new_status = Status.Closing
-                    elif status_left == status_right == Status.Opened:
+                        new_status = Roof.Status.Closing
+                    elif status_left == status_right == Roof.Status.Opened:
                         # if both roofs are open, combined status is also open
-                        new_status = Status.Opened
-                    elif status_left == status_right == Status.Closed:
+                        new_status = Roof.Status.Opened
+                    elif status_left == status_right == Roof.Status.Closed:
                         # if both roofs are closed, combined status is also closed
-                        new_status = Status.Closed
-                    elif status_left == status_right == Status.Stopped:
+                        new_status = Roof.Status.Closed
+                    elif status_left == status_right == Roof.Status.Stopped:
                         # if both roofs are stopped, combined status is also stopped
-                        new_status = Status.Stopped
+                        new_status = Roof.Status.Stopped
                     else:
                         # whatever
-                        new_status = Status.Unknown
+                        new_status = Roof.Status.Unknown
 
                     # changes?
                     if self._status != new_status:
                         log.info('Roof is now %s.', new_status.value)
 
                         # send events?
-                        if self._status != Status.Unknown:
-                            if new_status == Status.Opened:
+                        if self._status != Roof.Status.Unknown:
+                            if new_status == Roof.Status.Opened:
                                 # roof has opened
                                 self.comm.send_event(RoofOpenedEvent())
-                            elif new_status == Status.Closing:
+                            elif new_status == Roof.Status.Closing:
                                 # roof started to close
                                 self.comm.send_event(RoofClosingEvent())
                                 self.comm.send_event(BadWeatherEvent())
@@ -110,19 +109,41 @@ class Roof(PyObsModule, IRoof, IWeather):
 
             finally:
                 # wait a little until next update
-                self.closing.wait(self.config['interval'])
+                self.closing.wait(self._interval)
 
     def open_roof(self, *args, **kwargs):
+        """Open the roof."""
         pass
 
     def close_roof(self, *args, **kwargs):
+        """Close the roof."""
         pass
 
     def halt_roof(self, *args, **kwargs):
         pass
 
-    def get_motion_status(self, device: str = None) -> Status:
-        return self._status
+    def get_motion_status(self, device: str = None, *args, **kwargs) -> IMotion.Status:
+        """Returns current motion status.
+
+        Args:
+            device: Name of device to get status for, or None.
+
+        Returns:
+            A string from the Status enumerator.
+        """
+
+        if self._status == Roof.Status.Opened:
+            return IMotion.Status.POSITIONED
+        elif self._status == Roof.Status.Closed:
+            return IMotion.Status.PARKED
+        elif self._status == Roof.Status.Opening:
+            return IMotion.Status.INITIALIZING
+        elif self._status == Roof.Status.Closing:
+            return IMotion.Status.PARKING
+        elif self._status == Roof.Status.Stopped:
+            return IMotion.Status.IDLE
+        else:
+            return IMotion.Status.UNKNOWN
 
 
 __all__ = ['Roof']
