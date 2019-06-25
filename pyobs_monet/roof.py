@@ -16,7 +16,7 @@ class Roof(PyObsModule, IRoof):
         Opening = 'opening'
         Closing = 'closing'
         Stopped = 'stopped'
-        Unknown = None
+        Unknown = 'unknown'
         
     def __init__(self, url: str = '', username: str = None, password: str = None, interval: int = 30, *args, **kwargs):
         PyObsModule.__init__(self, thread_funcs=[self._update_thread], *args, **kwargs)
