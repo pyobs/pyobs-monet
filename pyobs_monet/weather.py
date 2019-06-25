@@ -35,10 +35,10 @@ class Weather(PyObsModule, IWeather):
                     # 'hum_warn', 'rain_warn', 'cloud_warn', 'wind_warn', 'temp_warn'
                     with self._data_lock:
                         self._data = {
-                            IWeather.Sensors.TIME: row['datetime'],
-                            IWeather.Sensors.HUMIDITY: row['avg_hum'],
-                            IWeather.Sensors.WINDSPEED: row['avg_wind'],
-                            IWeather.Sensors.TEMPERATURE: row['avg_temp']
+                            IWeather.Sensors.TIME.value: row['datetime'],
+                            IWeather.Sensors.HUMIDITY.value: row['avg_hum'],
+                            IWeather.Sensors.WINDSPEED.value: row['avg_wind'],
+                            IWeather.Sensors.TEMPERATURE.value: row['avg_temp']
                         }
 
             except Exception:
