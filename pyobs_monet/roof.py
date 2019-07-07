@@ -3,8 +3,9 @@ from enum import Enum
 import requests
 
 from pyobs import PyObsModule
-from pyobs.events import RoofOpenedEvent, RoofClosingEvent
-from pyobs.interfaces import IRoof, IMotion
+from pyobs.events import RoofOpenedEvent, RoofClosingEvent, MotionStatusChangedEvent, BadWeatherEvent
+from pyobs.interfaces import IRoof, IMotion, IWeather
+from pyobs.modules import timeout
 
 log = logging.getLogger(__name__)
 
@@ -18,7 +19,18 @@ class Roof(PyObsModule, IRoof):
         Stopped = 'stopped'
         Unknown = 'unknown'
         
-    def __init__(self, url: str = '', username: str = None, password: str = None, interval: int = 30, *args, **kwargs):
+    def __init__(self, url: str = '', username: str = None, password: str = None, interval: int = 10,
+                 weather: str = None, *args, **kwargs):
+        """Creates a module for the Monet roofs.
+
+        Args:
+            url: URL of roof controller.
+            username: Username for roof controller.
+            password: Password for roof controller.
+            interval: Interval in which to update status.
+            weather: Name of weather module. If used, it must give good weather for roof to open.
+        """
+
         PyObsModule.__init__(self, thread_funcs=[self._update_thread], *args, **kwargs)
 
         # store
@@ -26,6 +38,7 @@ class Roof(PyObsModule, IRoof):
         self._username = username
         self._password = password
         self._interval = interval
+        self._weather = weather
 
         # init status
         self._status = Roof.Status.Unknown
@@ -34,6 +47,15 @@ class Roof(PyObsModule, IRoof):
 
         # change logging level for urllib3
         logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(logging.WARNING)
+
+    def open(self):
+        """Open module."""
+        PyObsModule.open(self)
+
+        # subscribe to events
+        if self.comm:
+            self.comm.register_event(MotionStatusChangedEvent)
+            self.comm.register_event(BadWeatherEvent, self._on_bad_weather)
 
     def _update_thread(self):
         # open new session
@@ -118,16 +140,82 @@ class Roof(PyObsModule, IRoof):
                 # wait a little until next update
                 self.closing.wait(self._interval)
 
-    def open_roof(self, *args, **kwargs):
-        """Open the roof."""
-        pass
+    @timeout(300000)
+    def init(self, *args, **kwargs):
+        """Open roof.
 
-    def close_roof(self, *args, **kwargs):
-        """Close the roof."""
-        pass
+        Raises:
+            ValueError: If device could not be initialized.
+        """
 
-    def halt_roof(self, *args, **kwargs):
-        pass
+        # only close, if not already closed
+        if self._status != Roof.Status.Opened:
+            # need to check weather?
+            if self._weather is not None:
+                # get proxy
+                try:
+                    weather: IWeather = self.proxy(self._weather, IWeather)
+                except ValueError:
+                    log.warning('Could not talk to weather module, will not open.')
+                    return
+
+                # is weather good?
+                good = weather.is_weather_good().wait()
+
+                # not good?
+                if not good:
+                    log.warning('Weather module reports bad weather, will not open.')
+                    return
+
+            # open roof
+            log.info('Opening roof...')
+            requests.get(self._url + '?OPENALL', auth=(self._username, self._password))
+
+            # wait for closed status
+            while self._status != Roof.Status.Opened:
+                self.closing.wait(1)
+
+            # finished
+            log.info('Opened roof successfully.')
+
+    @timeout(300000)
+    def park(self, *args, **kwargs):
+        """Close roof.
+
+        Raises:
+            ValueError: If device could not be parked.
+        """
+
+        # only close, if not already closed
+        if self._status != Roof.Status.Closed:
+            # close roof
+            log.info('Closing roof...')
+            requests.get(self._url + '?CLOSEALL', auth=(self._username, self._password))
+
+            # wait for closed status
+            while self._status != Roof.Status.Closed:
+                self.closing.wait(1)
+
+            # finished
+            log.info('Closed roof successfully.')
+
+    def stop_motion(self, device: str = None, *args, **kwargs):
+        """Stop motion of roof.
+
+        Args:
+            device: Name of device to stop, or None for all.
+        """
+
+        # stop roof
+        log.info('Stopping roof...')
+        requests.get(self._url + '?STOPALL', auth=(self._username, self._password))
+
+        # wait for non-moving status
+        while self._status in [Roof.Status.Opening, Roof.Status.Closing]:
+            self.closing.wait(1)
+
+        # finished
+        log.info('Stopped roof successfully.')
 
     def get_motion_status(self, device: str = None, *args, **kwargs) -> IMotion.Status:
         """Returns current motion status.
@@ -151,6 +239,16 @@ class Roof(PyObsModule, IRoof):
             return IMotion.Status.IDLE
         else:
             return IMotion.Status.UNKNOWN
+
+    def _on_bad_weather(self, event: BadWeatherEvent, sender: str, *args, **kwargs):
+        """Abort exposure if a bad weather event occurs.
+
+        Args:
+            event: The bad weather event.
+            sender: Who sent it.
+        """
+        log.warning('Received bad weather event.')
+        self.park()
 
 
 __all__ = ['Roof']
