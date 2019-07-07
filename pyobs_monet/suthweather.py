@@ -3,12 +3,15 @@ import threading
 from sqlalchemy import create_engine
 
 from pyobs import PyObsModule
+from pyobs.events import BadWeatherEvent
+from pyobs.events.goodweather import GoodWeatherEvent
 from pyobs.interfaces import IWeather
+from pyobs.utils.time import Time
 
 log = logging.getLogger(__name__)
 
 
-class Weather(PyObsModule, IWeather):
+class SuthWeather(PyObsModule, IWeather):
     def __init__(self, connect: str = '', interval: int = 30, *args, **kwargs):
         PyObsModule.__init__(self, thread_funcs=[self._update_thread], *args, **kwargs)
 
@@ -17,6 +20,7 @@ class Weather(PyObsModule, IWeather):
         self._interval = interval
         self._data = {}
         self._data_lock = threading.RLock()
+        self._weather_good = False
 
     def _update_thread(self):
         # connect db
@@ -35,11 +39,30 @@ class Weather(PyObsModule, IWeather):
                     # 'hum_warn', 'rain_warn', 'cloud_warn', 'wind_warn', 'temp_warn'
                     with self._data_lock:
                         self._data = {
-                            IWeather.Sensors.TIME.value: row['datetime'],
-                            IWeather.Sensors.HUMIDITY.value: row['avg_hum'],
-                            IWeather.Sensors.WINDSPEED.value: row['avg_wind'],
-                            IWeather.Sensors.TEMPERATURE.value: row['avg_temp']
+                            IWeather.Sensors.TIME: row['datetime'],
+                            IWeather.Sensors.HUMIDITY: row['avg_hum'],
+                            IWeather.Sensors.WINDSPEED: row['avg_wind'],
+                            IWeather.Sensors.TEMPERATURE: row['avg_temp']
                         }
+
+                    # get datetime object
+                    time = Time(self._data[IWeather.Sensors.TIME])
+
+                    # decide on whether the weather is good or not
+                    good = (Time.now() - time).total_seconds() < 300 and \
+                        self._data[IWeather.Sensors.HUMIDITY] < 85. and \
+                        self._data[IWeather.Sensors.WINDSPEED] < 45.
+
+                    # did it change?
+                    if self._weather_good != good:
+                        # send event
+                        if good is True:
+                            self.comm.send_event(GoodWeatherEvent())
+                        else:
+                            self.comm.send_event(BadWeatherEvent())
+
+                        # store new state
+                        self._weather_good = good
 
             except Exception:
                 log.exception('Something went wrong.')
@@ -50,7 +73,11 @@ class Weather(PyObsModule, IWeather):
 
     def get_weather_status(self, *args, **kwargs) -> dict:
         """Returns status of object in form of a dictionary. See other interfaces for details."""
-        return self._data
+        return {k.value: v for k, v in self._data.items()}
+
+    def is_weather_good(self, *args, **kwargs) -> bool:
+        """Whether the weather is good to observe."""
+        return self._weather_good
 
 
-__all__ = ['Weather']
+__all__ = ['SuthWeather']
