@@ -49,7 +49,7 @@ class SuthWeather(PyObsModule, IWeather):
                     time = Time(self._data[IWeather.Sensors.TIME])
 
                     # decide on whether the weather is good or not
-                    good = (Time.now() - time).total_seconds() < 300 and \
+                    good = (Time.now() - time).tai < 300 and \
                         self._data[IWeather.Sensors.HUMIDITY] < 85. and \
                         self._data[IWeather.Sensors.WINDSPEED] < 45.
 
