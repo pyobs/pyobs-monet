@@ -129,7 +129,12 @@ class McDonaldWeather(PyObsModule, IWeather):
                     self._weather_good = good
 
             except ValueError as e:
+                self._weather_good = False
                 log.error(str(e))
+
+            except:
+                log.exception('Something went wrong.')
+                self._weather_good = False
 
             finally:
                 # wait a little until next update

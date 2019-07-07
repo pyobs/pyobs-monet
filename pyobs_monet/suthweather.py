@@ -66,8 +66,13 @@ class SuthWeather(PyObsModule, IWeather):
                         # store new state
                         self._weather_good = good
 
-            except Exception:
+            except ValueError as e:
+                self._weather_good = False
+                log.error(str(e))
+
+            except:
                 log.exception('Something went wrong.')
+                self._weather_good = False
 
             finally:
                 # wait a little until next update
