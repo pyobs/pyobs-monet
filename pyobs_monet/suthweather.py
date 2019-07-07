@@ -57,8 +57,10 @@ class SuthWeather(PyObsModule, IWeather):
                     if self._weather_good != good:
                         # send event
                         if good is True:
+                            log.info('Weather is now good.')
                             self.comm.send_event(GoodWeatherEvent())
                         else:
+                            log.info('Weather is now bad.')
                             self.comm.send_event(BadWeatherEvent())
 
                         # store new state
