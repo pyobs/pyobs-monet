@@ -20,7 +20,7 @@ class McDonaldWeather(PyObsModule, IWeather):
         self._interval = interval
         self._data = {}
         self._data_lock = threading.RLock()
-        self._weather_good = False
+        self._weather_good = None
 
     def _update_thread(self):
         # create session
@@ -168,7 +168,7 @@ class McDonaldWeather(PyObsModule, IWeather):
 
     def is_weather_good(self, *args, **kwargs) -> bool:
         """Whether the weather is good to observe."""
-        return self._weather_good
+        return self._weather_good is True
 
 
 __all__ = ['McDonaldWeather']
