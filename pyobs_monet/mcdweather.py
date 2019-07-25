@@ -69,27 +69,48 @@ class McDonaldWeather(PyObsModule, IWeather):
                 time = Time(now.strftime('%Y-%m-%d') + ' ' + s[0] + ':00')
 
                 # convert temp from °F to °C
-                temp = (float(s[1]) - 32) / 1.8
+                try:
+                    temp = (float(s[1]) - 32) / 1.8
+                except ValueError:
+                    temp = None
 
                 # humidity
-                humid = float(s[2])
+                try:
+                    humid = float(s[2])
+                except ValueError:
+                    humid = None
 
                 # dew point, given in °F, convert to °C
-                dew_pt = (float(s[3]) - 32) / 1.8
+                try:
+                    dew_pt = (float(s[3]) - 32) / 1.8
+                except ValueError:
+                    dew_pt = None
 
                 # pressure, convert from inHg to hPa
-                press = float(s[4]) * 33.86389
+                try:
+                    press = float(s[4]) * 33.86389
+                except ValueError:
+                    press = None
 
                 # wind dir, given as "avg ~ std"
-                tmp = s[5].split('~')
-                wind_dir = float(tmp[0])
+                try:
+                    tmp = s[5].split('~')
+                    wind_dir = float(tmp[0])
+                except ValueError:
+                    wind_dir = None
 
                 # wind speed, given as "avg max min", convert from mph to kmh
-                tmp = s[6].split()
-                wind_speed = float(tmp[1]) / 1.609344
+                try:
+                    tmp = s[6].split()
+                    wind_speed = float(tmp[1]) / 1.609344
+                except ValueError:
+                    wind_speed = None
 
                 # particle count, convert from particles per ft³ to particles per m³
-                particles = float(s[7]) * 3.2808**3
+                try:
+                    particles = float(s[7]) * 3.2808**3
+                except ValueError:
+                    particles = None
 
                 # rain
                 rain = 1 if s[8] == 'Y' else 0
@@ -108,12 +129,13 @@ class McDonaldWeather(PyObsModule, IWeather):
                     }
 
                 # decide on whether the weather is good or not
+                e = IWeather.Sensors
                 good = (Time.now() - time).tai < 300 and \
-                       self._data[IWeather.Sensors.HUMIDITY] < 85. and \
-                       self._data[IWeather.Sensors.DEWPOINT] > 2. and \
-                       self._data[IWeather.Sensors.WINDSPEED] < 45. and \
-                       self._data[IWeather.Sensors.PARTICLES] < 3.5e6 and \
-                       self._data[IWeather.Sensors.RAIN] == 0.
+                       self._data[e.HUMIDITY] is not None and self._data[e.HUMIDITY] < 85. and \
+                       self._data[e.DEWPOINT] is not None and self._data[e.DEWPOINT] > 2. and \
+                       self._data[e.WINDSPEED] is not None and self._data[e.WINDSPEED] < 45. and \
+                       self._data[e.PARTICLES] is not None and self._data[e.PARTICLES] < 3.5e6 and \
+                       self._data[e.RAIN] is not None and self._data[e.RAIN] == 0.
 
                 # did it change?
                 if self._weather_good != good:
