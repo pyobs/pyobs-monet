@@ -4,13 +4,13 @@ import requests
 
 from pyobs import PyObsModule
 from pyobs.events import RoofOpenedEvent, RoofClosingEvent, MotionStatusChangedEvent, BadWeatherEvent
-from pyobs.interfaces import IRoof, IMotion, IWeather
+from pyobs.interfaces import IRoof, IMotion, IWeather, IFitsHeaderProvider
 from pyobs.modules import timeout
 
 log = logging.getLogger(__name__)
 
 
-class Roof(PyObsModule, IRoof):
+class Roof(PyObsModule, IRoof, IFitsHeaderProvider):
     class Status(Enum):
         Opened = 'opened'
         Closed = 'closed'
@@ -249,6 +249,16 @@ class Roof(PyObsModule, IRoof):
         """
         log.warning('Received bad weather event.')
         self.park()
+
+    def get_fits_headers(self, *args, **kwargs) -> dict:
+        """Returns FITS header for the current status of the telescope.
+
+        Returns:
+            Dictionary containing FITS headers.
+        """
+        return {
+            'ROOF-OPN': (self._status == Roof.Status.Opened, 'True for open, false for closed roof')
+        }
 
 
 __all__ = ['Roof']
