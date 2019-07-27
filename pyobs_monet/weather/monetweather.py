@@ -11,7 +11,7 @@ log = logging.getLogger(__name__)
 
 
 class MonetWeather(PyObsModule, IWeather):
-    def __init__(self, url: str = 'https://monet.as.utexas.edu/weather/', interval: int = 30,
+    def __init__(self, url: str = 'http://weather.monetn:8888/', interval: int = 30,
                  *args, **kwargs):
         PyObsModule.__init__(self, thread_funcs=[self._update_thread], *args, **kwargs)
 
