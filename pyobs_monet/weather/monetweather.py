@@ -4,13 +4,13 @@ import requests
 
 from pyobs import PyObsModule
 from pyobs.events import BadWeatherEvent, GoodWeatherEvent
-from pyobs.interfaces import IWeather
+from pyobs.interfaces import IWeather, IFitsHeaderProvider
 from pyobs.utils.time import Time
 
 log = logging.getLogger(__name__)
 
 
-class MonetWeather(PyObsModule, IWeather):
+class MonetWeather(PyObsModule, IWeather, IFitsHeaderProvider):
     def __init__(self, url: str = 'http://weather.monetn:8888/', interval: int = 30,
                  *args, **kwargs):
         PyObsModule.__init__(self, thread_funcs=[self._update_thread], *args, **kwargs)
@@ -92,6 +92,41 @@ class MonetWeather(PyObsModule, IWeather):
     def is_weather_good(self, *args, **kwargs) -> bool:
         """Whether the weather is good to observe."""
         return self._weather_good is True
+
+    def get_fits_headers(self, *args, **kwargs) -> dict:
+        """Returns FITS header for the current status of the telescope.
+
+        Returns:
+            Dictionary containing FITS headers.
+        """
+
+        # get data
+        hdr = {}
+        with self._data_lock:
+            try:
+                hdr['WS-TEMP'] = (self._data[IWeather.Sensors.TEMPERATURE],
+                                  'Ambient temperature average during exposure, C')
+            except:
+                log.error('Could not get temperature for FITS headers.')
+            try:
+                hdr['WS-HUMID'] = (self._data[IWeather.Sensors.HUMIDITY], 'Ambient rel. humidity average, %')
+            except:
+                log.error('Could not get humidity for FITS headers.')
+            try:
+                hdr['WS-WIND'] = (self._data[IWeather.Sensors.WINDSPEED], 'Ambient average wind speed, m/s')
+            except:
+                log.error('Could not get wind speed for FITS headers.')
+            try:
+                hdr['WS-AZ'] = (self._data[IWeather.Sensors.WINDDIR], 'Average wind direction, deg')
+            except:
+                log.error('Could not get wind direction for FITS header.')
+            try:
+                hdr['WS-PREC'] = (1 if self._data[IWeather.Sensors.RAIN] else 0, 'Ambient precipitation [0/1]')
+            except:
+                log.error('Could not get rain status for FITS header.')
+
+        # return it
+        return hdr
 
 
 __all__ = ['MonetWeather']
