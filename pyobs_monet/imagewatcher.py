@@ -6,7 +6,7 @@ from astropy.io import fits
 import pymysql
 
 from pyobs.interfaces import IImageDB
-from pyobs.modules.imagedb import NewImageWatcher
+from pyobs.modules.image import NewImageWatcher
 from pyobs.utils.time import Time
 
 log = logging.getLogger(__name__)
