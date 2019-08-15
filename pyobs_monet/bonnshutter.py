@@ -8,7 +8,10 @@ log = logging.getLogger(__name__)
 
 class BonnShutter(PyObsModule):
     def __init__(self, device='/dev/ttyUSB0', baud_rate=19200, timeout=1, interval=60, *args, **kwargs):
-        PyObsModule.__init__(self, thread_funcs=self._mechanic, *args, **kwargs)
+        PyObsModule.__init__(self, *args, **kwargs)
+
+        # add thread func
+        self._add_thread_func(self._mechanic, True)
 
         # store
         self._device = device

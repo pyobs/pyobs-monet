@@ -31,7 +31,10 @@ class Roof(PyObsModule, IRoof, IFitsHeaderProvider):
             weather: Name of weather module. If used, it must give good weather for roof to open.
         """
 
-        PyObsModule.__init__(self, thread_funcs=[self._update_thread], *args, **kwargs)
+        PyObsModule.__init__(self, *args, **kwargs)
+
+        # add thread func
+        self._add_thread_func(self._update_thread, True)
 
         # store
         self._url = url

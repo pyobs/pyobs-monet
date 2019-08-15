@@ -13,7 +13,10 @@ log = logging.getLogger(__name__)
 
 class McDonaldWeather(PyObsModule, IWeather):
     def __init__(self, url: str = 'http://weather.as.utexas.edu/latest_5min.dat', interval: int = 30, *args, **kwargs):
-        PyObsModule.__init__(self, thread_funcs=[self._update_thread], *args, **kwargs)
+        PyObsModule.__init__(self, *args, **kwargs)
+
+        # add thread func
+        self._add_thread_func(self._update_thread, True)
 
         # store
         self._url = url
