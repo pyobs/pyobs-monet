@@ -2,15 +2,15 @@ import logging
 from enum import Enum
 import requests
 
-from pyobs import PyObsModule
-from pyobs.events import RoofOpenedEvent, RoofClosingEvent, MotionStatusChangedEvent, BadWeatherEvent
-from pyobs.interfaces import IRoof, IMotion, IWeather, IFitsHeaderProvider
+from pyobs.events import RoofOpenedEvent, RoofClosingEvent
+from pyobs.interfaces import IMotion
 from pyobs.modules import timeout
+from pyobs.modules.roof import BaseRoof
 
 log = logging.getLogger(__name__)
 
 
-class Roof(PyObsModule, IRoof, IFitsHeaderProvider):
+class Roof(BaseRoof):
     class Status(Enum):
         Opened = 'opened'
         Closed = 'closed'
@@ -19,8 +19,7 @@ class Roof(PyObsModule, IRoof, IFitsHeaderProvider):
         Stopped = 'stopped'
         Unknown = 'unknown'
         
-    def __init__(self, url: str = '', username: str = None, password: str = None, interval: int = 10,
-                 weather: str = None, *args, **kwargs):
+    def __init__(self, url: str = '', username: str = None, password: str = None, interval: int = 10, *args, **kwargs):
         """Creates a module for the Monet roofs.
 
         Args:
@@ -28,10 +27,9 @@ class Roof(PyObsModule, IRoof, IFitsHeaderProvider):
             username: Username for roof controller.
             password: Password for roof controller.
             interval: Interval in which to update status.
-            weather: Name of weather module. If used, it must give good weather for roof to open.
         """
 
-        PyObsModule.__init__(self, *args, **kwargs)
+        BaseRoof.__init__(self, *args, **kwargs)
 
         # add thread func
         self._add_thread_func(self._update_thread, True)
@@ -41,7 +39,6 @@ class Roof(PyObsModule, IRoof, IFitsHeaderProvider):
         self._username = username
         self._password = password
         self._interval = interval
-        self._weather = weather
 
         # init status
         self._status = Roof.Status.Unknown
@@ -50,15 +47,6 @@ class Roof(PyObsModule, IRoof, IFitsHeaderProvider):
 
         # change logging level for urllib3
         logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(logging.WARNING)
-
-    def open(self):
-        """Open module."""
-        PyObsModule.open(self)
-
-        # subscribe to events
-        if self.comm:
-            self.comm.register_event(MotionStatusChangedEvent)
-            self.comm.register_event(BadWeatherEvent, self._on_bad_weather)
 
     def _update_thread(self):
         # open new session
@@ -133,6 +121,9 @@ class Roof(PyObsModule, IRoof, IFitsHeaderProvider):
                         # set status
                         self._status = new_status
 
+                        # and evaluate it
+                        self._eval_status()
+
             except Exception:
                 log.exception('Something went wrong.')
 
@@ -153,22 +144,10 @@ class Roof(PyObsModule, IRoof, IFitsHeaderProvider):
 
         # only close, if not already closed
         if self._status != Roof.Status.Opened:
-            # need to check weather?
-            if self._weather is not None:
-                # get proxy
-                try:
-                    weather: IWeather = self.proxy(self._weather, IWeather)
-                except ValueError:
-                    log.warning('Could not talk to weather module, will not open.')
-                    return
-
-                # is weather good?
-                good = weather.is_weather_good().wait()
-
-                # not good?
-                if not good:
-                    log.warning('Weather module reports bad weather, will not open.')
-                    return
+            # good weather?
+            if not self.is_weather_good():
+                log.warning('Weather module reports bad weather, will not open.')
+                return
 
             # open roof
             log.info('Opening roof...')
@@ -220,48 +199,20 @@ class Roof(PyObsModule, IRoof, IFitsHeaderProvider):
         # finished
         log.info('Stopped roof successfully.')
 
-    def get_motion_status(self, device: str = None, *args, **kwargs) -> IMotion.Status:
-        """Returns current motion status.
-
-        Args:
-            device: Name of device to get status for, or None.
-
-        Returns:
-            A string from the Status enumerator.
-        """
-
+    def _eval_status(self):
+        """Evaluate internal status."""
         if self._status == Roof.Status.Opened:
-            return IMotion.Status.POSITIONED
+            self._change_motion_status(IMotion.Status.POSITIONED)
         elif self._status == Roof.Status.Closed:
-            return IMotion.Status.PARKED
+            self._change_motion_status( IMotion.Status.PARKED)
         elif self._status == Roof.Status.Opening:
-            return IMotion.Status.INITIALIZING
+            self._change_motion_status( IMotion.Status.INITIALIZING)
         elif self._status == Roof.Status.Closing:
-            return IMotion.Status.PARKING
+            self._change_motion_status( IMotion.Status.PARKING)
         elif self._status == Roof.Status.Stopped:
-            return IMotion.Status.IDLE
+            self._change_motion_status( IMotion.Status.IDLE)
         else:
-            return IMotion.Status.UNKNOWN
-
-    def _on_bad_weather(self, event: BadWeatherEvent, sender: str, *args, **kwargs):
-        """Abort exposure if a bad weather event occurs.
-
-        Args:
-            event: The bad weather event.
-            sender: Who sent it.
-        """
-        log.warning('Received bad weather event.')
-        self.park()
-
-    def get_fits_headers(self, *args, **kwargs) -> dict:
-        """Returns FITS header for the current status of the telescope.
-
-        Returns:
-            Dictionary containing FITS headers.
-        """
-        return {
-            'ROOF-OPN': (self._status == Roof.Status.Opened, 'True for open, false for closed roof')
-        }
+            self._change_motion_status( IMotion.Status.UNKNOWN)
 
 
 __all__ = ['Roof']
