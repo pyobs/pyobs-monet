@@ -1,4 +1,5 @@
 import logging
+import time
 from enum import Enum
 import requests
 
@@ -39,6 +40,9 @@ class Roof(BaseRoof):
         self._username = username
         self._password = password
         self._interval = interval
+
+        # last reset
+        self._last_reset = time.time()
 
         # init status
         self._status = Roof.Status.Unknown
@@ -104,6 +108,11 @@ class Roof(BaseRoof):
                     else:
                         # whatever
                         new_status = Roof.Status.Unknown
+
+                        # reset it only every 30 seconds
+                        if time.time() - self._last_reset > 30:
+                            session.get(self._url + '?RESET', auth=(self._username, self._password))
+                            self._last_reset = time.time()
 
                     # changes?
                     if self._status != new_status:
