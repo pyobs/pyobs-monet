@@ -123,11 +123,13 @@ class Roof(BaseRoof):
                                     # reset roof
                                     log.info('Resetting roof...')
                                     session.get(self._url + '?RESET', auth=(self._username, self._password))
+                                    self._last_reset = time.time()
                                     log.info('Done.')
 
-                                    # reset variables
-                                    self._unknown_since = None
-                                    self._last_reset = time.time()
+                    # reset unknown
+                    if new_status != Roof.Status.Unknown:
+                        self._unknown_since = None
+                        self._last_reset = time.time()
 
                     # changes?
                     if self._status != new_status:
