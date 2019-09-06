@@ -41,7 +41,8 @@ class Roof(BaseRoof):
         self._password = password
         self._interval = interval
 
-        # last reset
+        # unknown since and last reset
+        self._unknown_since = None
         self._last_reset = time.time()
 
         # init status
@@ -109,12 +110,24 @@ class Roof(BaseRoof):
                         # whatever
                         new_status = Roof.Status.Unknown
 
-                        # reset it only every 30 seconds
-                        if time.time() - self._last_reset > 30:
-                            log.info('Resetting roof...')
-                            session.get(self._url + '?RESET', auth=(self._username, self._password))
-                            log.info('Done.')
-                            self._last_reset = time.time()
+                        # is this the first time that we're in unknown state?
+                        if self._unknown_since is None:
+                            # just remember it
+                            self._unknown_since = time.time()
+
+                        else:
+                            # okay, seems to be going on for longer, but wait at least 20 seconds
+                            if time.time() - self._unknown_since > 20:
+                                # reset it only every 30 seconds
+                                if time.time() - self._last_reset > 30:
+                                    # reset roof
+                                    log.info('Resetting roof...')
+                                    session.get(self._url + '?RESET', auth=(self._username, self._password))
+                                    log.info('Done.')
+
+                                    # reset variables
+                                    self._unknown_since = None
+                                    self._last_reset = time.time()
 
                     # changes?
                     if self._status != new_status:
