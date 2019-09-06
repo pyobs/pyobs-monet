@@ -111,7 +111,9 @@ class Roof(BaseRoof):
 
                         # reset it only every 30 seconds
                         if time.time() - self._last_reset > 30:
+                            log.info('Resetting roof...')
                             session.get(self._url + '?RESET', auth=(self._username, self._password))
+                            log.info('Done.')
                             self._last_reset = time.time()
 
                     # changes?
