@@ -25,7 +25,16 @@ class MasterMind(PyObsModule, IFitsHeaderProvider):
             log.info('Take image %d...', self._expid)
             camera.expose(0, ICamera.ImageType.BIAS)
 
-    def get_fits_headers(self, *args, **kwargs) -> dict:
+    def get_fits_headers(self, namespaces: list = None, *args, **kwargs) -> dict:
+        """Returns FITS header for the current status of this module.
+
+        Args:
+            namespaces: If given, only return FITS headers for the given namespaces.
+
+        Returns:
+            Dictionary containing FITS headers.
+        """
+
         # build obj id
         objid = Time.now().night_obs(self.observer).strftime('%Y%m%d') + 'S-%04d' % self._objid
 
