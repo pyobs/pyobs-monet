@@ -240,5 +240,16 @@ class Roof(BaseRoof):
         else:
             self._change_motion_status( IMotion.Status.UNKNOWN)
 
+    def is_ready(self, *args, **kwargs) -> bool:
+        """Returns the device is "ready", whatever that means for the specific device.
+
+        Returns:
+            True, if roof is open.
+        """
+
+        # check that motion is not in one of the states listed below
+        return self.get_motion_status() not in [IMotion.Status.PARKED, IMotion.Status.INITIALIZING,
+                                                IMotion.Status.PARKING, IMotion.Status.ERROR, IMotion.Status.UNKNOWN]
+
 
 __all__ = ['Roof']
