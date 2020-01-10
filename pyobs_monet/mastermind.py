@@ -14,7 +14,7 @@ class MasterMind(PyObsModule, IFitsHeaderProvider):
         self._expid = 0
         self._object = None
 
-    def run(self):
+    def main(self):
         # get camera
         camera = self.comm['camera']    # type: (ICamera, Proxy)
 
