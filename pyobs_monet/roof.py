@@ -172,6 +172,11 @@ class Roof(BaseRoof):
             ValueError: If device could not be initialized.
         """
 
+        # do nothing in local mode
+        if self._mode is None or self._mode == 'local':
+            log.warning('Roof in local mode, cannot do anything...')
+            return
+
         # only close, if not already closed
         if self._status != Roof.Status.Opened:
             # good weather?
@@ -197,6 +202,11 @@ class Roof(BaseRoof):
         Raises:
             ValueError: If device could not be parked.
         """
+
+        # do nothing in local mode
+        if self._mode is None or self._mode == 'local':
+            log.warning('Roof in local mode, cannot do anything...')
+            return
 
         # only close, if not already closed
         if self._status != Roof.Status.Closed:
