@@ -49,6 +49,7 @@ class Roof(BaseRoof):
         self._status = Roof.Status.Unknown
         self._roof1 = Roof.Status.Unknown
         self._roof2 = Roof.Status.Unknown
+        self._mode = None
 
         # change logging level for urllib3
         logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(logging.WARNING)
@@ -89,6 +90,7 @@ class Roof(BaseRoof):
                     # parse status
                     status_left = Roof.Status(status['STATE1'].lower())
                     status_right = Roof.Status(status['STATE2'].lower())
+                    self._mode = status['MODE'].lower()
 
                     # get some kind of combined status
                     if status_left == Roof.Status.Opening or status_right == Roof.Status.Opening:
@@ -110,21 +112,23 @@ class Roof(BaseRoof):
                         # whatever
                         new_status = Roof.Status.Unknown
 
-                        # is this the first time that we're in unknown state?
-                        if self._unknown_since is None:
-                            # just remember it
-                            self._unknown_since = time.time()
+                        # if mode is not "local", we need to deal with this
+                        if self._mode != 'local':
+                            # is this the first time that we're in unknown state?
+                            if self._unknown_since is None:
+                                # just remember it
+                                self._unknown_since = time.time()
 
-                        else:
-                            # okay, seems to be going on for longer, but wait at least 20 seconds
-                            if time.time() - self._unknown_since > 20:
-                                # reset it only every 30 seconds
-                                if time.time() - self._last_reset > 30:
-                                    # reset roof
-                                    log.info('Resetting roof...')
-                                    session.get(self._url + '?RESET', auth=(self._username, self._password))
-                                    self._last_reset = time.time()
-                                    log.info('Done.')
+                            else:
+                                # okay, seems to be going on for longer, but wait at least 20 seconds
+                                if time.time() - self._unknown_since > 20:
+                                    # reset it only every 60 seconds
+                                    if time.time() - self._last_reset > 60:
+                                        # reset roof
+                                        log.info('Resetting roof...')
+                                        session.get(self._url + '?RESET', auth=(self._username, self._password))
+                                        self._last_reset = time.time()
+                                        log.info('Done.')
 
                     # reset unknown
                     if new_status != Roof.Status.Unknown:
