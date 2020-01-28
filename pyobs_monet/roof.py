@@ -147,12 +147,14 @@ class Roof(BaseRoof):
                                 # roof started to close
                                 self.comm.send_event(RoofClosingEvent())
 
-                        # set mode and status
-                        self._mode = status['MODE'].lower()
+                        # set status
                         self._status = new_status
 
                         # and evaluate it
                         self._eval_status()
+
+                # finally, set mode
+                self._mode = status['MODE'].lower()
 
             except Exception:
                 log.exception('Something went wrong.')
