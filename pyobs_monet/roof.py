@@ -90,7 +90,6 @@ class Roof(BaseRoof):
                     # parse status
                     status_left = Roof.Status(status['STATE1'].lower())
                     status_right = Roof.Status(status['STATE2'].lower())
-                    self._mode = status['MODE'].lower()
 
                     # get some kind of combined status
                     if status_left == Roof.Status.Opening or status_right == Roof.Status.Opening:
@@ -148,7 +147,8 @@ class Roof(BaseRoof):
                                 # roof started to close
                                 self.comm.send_event(RoofClosingEvent())
 
-                        # set status
+                        # set mode and status
+                        self._mode = status['MODE'].lower()
                         self._status = new_status
 
                         # and evaluate it
