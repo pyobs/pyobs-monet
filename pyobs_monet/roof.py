@@ -154,7 +154,10 @@ class Roof(BaseRoof):
                         self._eval_status()
 
                 # finally, set mode
-                self._mode = status['MODE'].lower()
+                if self._mode != status['MODE'].lower():
+                    if self._mode is not None:
+                        log.info('Mode of roof changed from %s to %s.', self._mode.upper(), status['MODE'].upper())
+                    self._mode = status['MODE'].lower()
 
             except Exception:
                 log.exception('Something went wrong.')
