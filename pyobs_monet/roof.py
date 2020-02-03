@@ -20,7 +20,8 @@ class Roof(BaseRoof):
         Stopped = 'stopped'
         Unknown = 'unknown'
         
-    def __init__(self, url: str = '', username: str = None, password: str = None, interval: int = 10, *args, **kwargs):
+    def __init__(self, url: str = '', username: str = None, password: str = None, interval: int = 10,
+                 auto_reset: bool = False, *args, **kwargs):
         """Creates a module for the Monet roofs.
 
         Args:
@@ -28,6 +29,7 @@ class Roof(BaseRoof):
             username: Username for roof controller.
             password: Password for roof controller.
             interval: Interval in which to update status.
+            reset: Whether to reset the roof automatically on error.
         """
 
         BaseRoof.__init__(self, *args, **kwargs)
@@ -40,6 +42,7 @@ class Roof(BaseRoof):
         self._username = username
         self._password = password
         self._interval = interval
+        self._auto_reset = auto_reset
 
         # unknown since and last reset
         self._unknown_since = None
@@ -122,7 +125,7 @@ class Roof(BaseRoof):
                                 # okay, seems to be going on for longer, but wait at least 20 seconds
                                 if time.time() - self._unknown_since > 20:
                                     # reset it only every 60 seconds
-                                    if time.time() - self._last_reset > 60:
+                                    if time.time() - self._last_reset > 60 and self._auto_reset:
                                         # reset roof
                                         log.info('Resetting roof...')
                                         session.get(self._url + '?RESET', auth=(self._username, self._password))
