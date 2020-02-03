@@ -113,6 +113,7 @@ class Roof(BaseRoof):
                     else:
                         # whatever
                         new_status = Roof.Status.Unknown
+                        log.info('Unknown state: %s', content)
 
                         # if mode is not "local", we need to deal with this
                         if self._mode != 'local':
@@ -159,6 +160,7 @@ class Roof(BaseRoof):
                 if self._mode != status['MODE'].lower():
                     if self._mode is not None:
                         log.info('Mode of roof changed from %s to %s.', self._mode.upper(), status['MODE'].upper())
+                        log.info('Debug: %s', content)
                     self._mode = status['MODE'].lower()
 
             except Exception:
