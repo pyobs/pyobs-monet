@@ -132,7 +132,6 @@ class Roof(BaseRoof):
                     # reset unknown
                     if new_status != Roof.Status.Unknown:
                         self._unknown_since = None
-                        self._last_reset = time.time()
 
                     # changes?
                     if self._status != new_status:
