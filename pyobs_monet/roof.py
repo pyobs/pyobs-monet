@@ -180,7 +180,7 @@ class Roof(BaseRoof):
         """
 
         # do nothing in local mode
-        if self._mode is None or self._mode == 'local':
+        if self._mode != 'auto':
             log.warning('Roof in local mode, cannot do anything...')
             return
 
@@ -211,7 +211,7 @@ class Roof(BaseRoof):
         """
 
         # do nothing in local mode
-        if self._mode is None or self._mode == 'local':
+        if self._mode != 'auto':
             log.warning('Roof in local mode, cannot do anything...')
             return
 
