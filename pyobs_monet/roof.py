@@ -2,6 +2,7 @@ import logging
 import time
 from enum import Enum
 import requests
+from requests import Timeout
 
 from pyobs.events import RoofOpenedEvent, RoofClosingEvent
 from pyobs.interfaces import IMotion
@@ -61,12 +62,30 @@ class Roof(BaseRoof):
         # open new session
         session = requests.Session()
 
+        # was last request a success?
+        last_was_success = True
+
         # run until closed
         errored = False
         while not self.closing.is_set():
             try:
                 # do request
-                r = session.get(self._url + '?STATUS', auth=(self._username, self._password))
+                try:
+                    r = session.get(self._url + '?STATUS', auth=(self._username, self._password), timeout=5)
+                except Timeout:
+                    # no success
+                    last_was_success = False
+
+                    # log it, if it's new
+                    if last_was_success:
+                        log.error('Could not connect to roof.')
+                        self.closing.wait(5)
+                        continue
+
+                # first successful request?
+                if not last_was_success:
+                    log.info('Connected to roof successfully.')
+                last_was_success = True
 
                 # get content
                 content = r.content.decode('utf-8')
