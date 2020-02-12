@@ -101,7 +101,7 @@ class Roof(BaseRoof):
                     elif status_left == Roof.Status.Closing or status_right == Roof.Status.Closing:
                         # if at least one roof is opening/closing, that's our status
                         new_status = Roof.Status.Closing
-                    elif status_left == Roof.Status.Stopped or status_right == status_right:
+                    elif status_left == Roof.Status.Stopped or status_right == Roof.Status.Stopped:
                         # if at least one roof is stopped, that's our status
                         new_status = Roof.Status.Stopped
                     elif status_left == status_right == Roof.Status.Opened:
