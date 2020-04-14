@@ -272,13 +272,13 @@ class Roof(BaseRoof):
         if self._status == Roof.Status.Opened:
             self._change_motion_status(IMotion.Status.POSITIONED)
         elif self._status == Roof.Status.Closed:
-            self._change_motion_status( IMotion.Status.PARKED)
+            self._change_motion_status(IMotion.Status.PARKED)
         elif self._status == Roof.Status.Opening:
-            self._change_motion_status( IMotion.Status.INITIALIZING)
+            self._change_motion_status(IMotion.Status.INITIALIZING)
         elif self._status == Roof.Status.Closing:
-            self._change_motion_status( IMotion.Status.PARKING)
+            self._change_motion_status(IMotion.Status.PARKING)
         elif self._status == Roof.Status.Stopped:
-            self._change_motion_status( IMotion.Status.IDLE)
+            self._change_motion_status(IMotion.Status.IDLE)
         else:
             self._change_motion_status( IMotion.Status.UNKNOWN)
 
