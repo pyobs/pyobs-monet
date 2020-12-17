@@ -1,14 +1,14 @@
 import logging
 import serial
 
-from pyobs import PyObsModule
+from pyobs import Module
 
 log = logging.getLogger(__name__)
 
 
-class BonnShutter(PyObsModule):
+class BonnShutter(Module):
     def __init__(self, device='/dev/ttyUSB0', baud_rate=19200, timeout=1, interval=60, *args, **kwargs):
-        PyObsModule.__init__(self, *args, **kwargs)
+        Module.__init__(self, *args, **kwargs)
 
         # add thread func
         self._add_thread_func(self._mechanic, True)
